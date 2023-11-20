@@ -7,9 +7,8 @@ import influxdb_client
 from influxdb_client.client.write_api import SYNCHRONOUS
 import json
 import socket
-import time
 
-
+# GLOBAL CONSTANTS
 HOST = "0.0.0.0"
 UDP_PORT = 10000
 MICRO_COMMANDS = ["TL", "LT"]
@@ -24,6 +23,7 @@ INFLUX_URL = "http://localhost:8086"
 
 
 def sendUDPMessage(msg, ip, port):
+    # Function to send UDP message to Android Client
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     try:
         sock.sendto(bytes(msg.encode('utf-8')), (ip, port))
@@ -60,9 +60,8 @@ class ThreadedUDPServer(socketserver.ThreadingMixIn, socketserver.UDPServer):
     pass
 
 
-# Send serial message
+# SERIAL COMMUNICATION SETUP
 SERIALPORT = "/dev/tty.usbmodem1202"
-
 BAUDRATE = 115200
 ser = serial.Serial()
 
@@ -91,6 +90,7 @@ def initUART():
 
 
 def sendUARTMessage(msg):
+    # Function to send a message through UART
     msg_bytes = msg.encode('utf-8')
     ser.write(msg_bytes)
     print("Message <{}> sent to micro-controller.".format(msg))
@@ -99,6 +99,7 @@ def sendUARTMessage(msg):
 # Main program logic follows:
 if __name__ == '__main__':
     initUART()
+    # initialization of the influxdb client
     client = influxdb_client.InfluxDBClient(
         url=INFLUX_URL, token=INFLUX_TOKEN, org=INFLUX_ORG)
     writeApi = client.write_api(write_options=SYNCHRONOUS)
@@ -113,11 +114,11 @@ if __name__ == '__main__':
         while ser.isOpen():
             if (ser.inWaiting() > 0):
                 data = ser.readline()
-                # json_str = data.decode('utf-8')
                 dataDecoded = json.loads(data)
                 LAST_VALUE = dataDecoded
                 temperature = dataDecoded["t"]
                 luminosite = dataDecoded["l"]
+                # writing data to database
                 onePoint = influxdb_client.Point("messages").field(
                     "temperature", temperature).field("luminosite", luminosite)
                 writeApi.write(bucket=INFLUX_BUCKET,
